@@ -1,0 +1,5 @@
+node_modules/
+scratch/
+*.pending
+.env
+settings.local.json

@@ -1,0 +1,31 @@
+{
+  "name": "@gohugo-ananke/compatibility",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reproducible Hugo build compatibility checks for Ananke",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gohugo-ananke/compatibility.git"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "compat": "node scripts/compatibility/cli.ts",
+    "check:release": "node scripts/compatibility/cli.ts --release-check --refresh --download --resume",
+    "report": "node scripts/report.ts",
+    "import:audit": "node scripts/import-audit.ts",
+    "test": "node --test tests/compatibility/*.test.ts",
+    "check": "tsc --noEmit && npm test"
+  },
+  "dependencies": {
+    "@iarna/toml": "2.2.5",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "typescript": "7.0.2"
+  }
+}

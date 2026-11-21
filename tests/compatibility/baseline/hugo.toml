@@ -1,0 +1,19 @@
+baseURL = 'https://compatibility.invalid/'
+title = 'Ananke compatibility fixture'
+defaultContentLanguage = 'en'
+summaryLength = 12
+[pagination]
+pagerSize = 2
+[taxonomies]
+tag = 'tags'
+category = 'categories'
+[languages.en]
+weight = 1
+languageName = 'English'
+[languages.fr]
+weight = 2
+languageName = 'Français'
+[[menus.main]]
+name = 'Posts'
+pageRef = '/posts'
+weight = 1
