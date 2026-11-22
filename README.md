@@ -24,16 +24,6 @@ npm run report -- --output ../documentation/content/get-started/compatibility.md
 
 The first command writes a preview to `scratch/report/compatibility.md`. The second writes the single public page into the sibling documentation checkout. Generation validates the compact facts and uses `documentation/compatibility.md` as its prose template. It needs no Hugo binary, network, historical site, or raw logs. Normal documentation builds read only this Markdown page.
 
-## What belongs in Git
-
-* Runner source, schemas, tests, and locked npm dependencies.
-* The common baseline fixture and documentation template.
-* Compact facts: exact theme commits, declared requirements, edition-specific patch statuses, tested intervals, binary fingerprints, and audit provenance.
-
-`node_modules/` and `scratch/` are ignored. Copied historical sources, downloaded binaries, caches, full execution JSON, raw logs, generated reports, and built sites belong in scratch or CI artefacts. The original historical artefacts remain in `../ananke/scratch/ananke-compatibility/`; they are not copied into this repository.
-
-Each imported audit records the SHA256 of its detailed JSON, original runner and fixture revisions, execution period, Node version, binary identities, and outcome counts. Importing the historical facts does not claim they were rerun with the relocated tool. New targeted runs retain earlier evidence for other releases and unselected versions. Newly discovered Hugo versions remain explicitly untested until checked.
-
 ## Maintenance commands
 
 ```bash
