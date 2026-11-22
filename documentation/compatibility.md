@@ -30,7 +30,7 @@ Ananke v2.12.1 and later audited releases do not include the historical example 
 
 ## Standard and Extended Hugo
 
-The table separates standard and Extended results. Older Ananke releases can require Hugo Extended, particularly when their CSS pipeline uses LibSass. The exact requirement depends on both the Ananke and Hugo versions. Select an edition with passing evidence for your chosen combination.
+The table shows one row for each Ananke release. A Hugo version counts as passing when the standard or the Extended edition builds the release. Older Ananke releases can require Hugo Extended, particularly when their CSS pipeline uses LibSass. The notes column shows the Hugo versions that need Extended. The compact facts keep the separate results for each edition.
 
 [Hugo v0.170.0 removed the Extended edition](https://github.com/gohugoio/hugo/releases/tag/v0.170.0). Its Extended archive names are compatibility aliases for the single remaining binary. The matrix marks the Extended edition unavailable from that release; it does not count an alias as a separate Extended build.
 
@@ -41,11 +41,11 @@ Warnings can report deprecated functions, configuration changes, optional resour
 ## Choose a suitable version
 
 1. Find your exact Ananke release in the table.
-2. Select a Hugo version inside a tested interval for an available edition.
-3. Check the declared requirement, warning count, and any gaps.
+2. Select a Hugo version between the minimum and maximum tested Hugo versions.
+3. Check the notes for the declared requirement, Extended requirements, warnings, and gaps.
 4. Build your own site and review its output before deployment.
 
-A tested interval contains only consecutive passing patch releases in the discovery snapshot. An unavailable, failed, or untested release breaks the interval. If compatibility returns in a later release, the table records a separate interval. Do not assume that a gap is supported.
+A tested interval contains only consecutive passing patch releases in the discovery snapshot. An unavailable, failed, or untested release breaks the interval. If compatibility returns in a later release, the notes column shows the gap. Do not assume that a gap is supported.
 
 The label `latest tested` identifies the newest discovered stable Hugo release when it passes. It does not promise support for a future release or establish an absolute maximum.
 

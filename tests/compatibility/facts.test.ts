@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { recordSnapshot, validateFacts, type Snapshot } from "../../scripts/compatibility/facts.ts";
+import { recordSnapshot, renderTable, validateFacts, type Snapshot } from "../../scripts/compatibility/facts.ts";
 import { resultSchema } from "../../scripts/compatibility/model.ts";
 
 const snapshot: Snapshot = {
@@ -41,4 +41,19 @@ test("a release commit cannot change silently", () => {
   const changed = structuredClone(snapshot);
   changed.releases[0]!.commit = "different";
   assert.throws(() => recordSnapshot(facts, changed, [result], "test", "second", "v24"), /commit changed/);
+});
+
+test("the table shows one row per release across editions", () => {
+  const facts = recordSnapshot(undefined, snapshot, [result], "test", "first", "v24");
+  const release = facts.snapshot.releases[0]!;
+  const versions = { "v0.169.0": "PASS", "v0.170.0": "NOT_APPLICABLE", "v0.170.1": "NOT_APPLICABLE" } as const;
+  release.outcomes.push({ ...structuredClone(release.outcomes[0]!), edition: "extended", versions: { ...versions },
+    evidence: { "v0.169.0": "first", "v0.170.0": "first", "v0.170.1": "first" } });
+  release.outcomes[0]!.versions = { "v0.169.0": "FAIL", "v0.170.0": "PASS", "v0.170.1": "PASS" };
+  release.outcomes[0]!.evidence = { "v0.169.0": "first", "v0.170.0": "first", "v0.170.1": "first" };
+  const [table, footnotes] = renderTable(facts).split("\n\n");
+  const rows = table!.split("\n").slice(2);
+  assert.equal(rows.length, 1);
+  assert.match(rows[0]!, /\| v0\.169\.0 \| v0\.170\.1 \(latest tested\) \| \[1\] \[2\] \|$/);
+  assert.match(footnotes!, /<p><sup>1<\/sup> Declared minimum Hugo version: 0\.160\.0\.<\/p>\n<p><sup>2<\/sup> Requires Hugo Extended for v0\.169\.0\.<\/p>/);
 });
