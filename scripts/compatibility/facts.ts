@@ -133,12 +133,22 @@ export function renderTable(facts: Facts): string {
     const covered = versions.filter(version => merged.get(version) === "PASS");
     const extendedOnly = intervals(covered, new Map(covered.map(version => [version, passing(extended[version] ?? "NOT_TESTED") && !passing(standard[version] ?? "NOT_TESTED") ? "PASS" : "NOT_TESTED"])));
     const warnings = release.outcomes.some(outcome => Object.values(outcome.versions).includes("PASS_WITH_WARNINGS"));
-    const gaps = ranges.slice(1).map((range, index) => `${ranges[index]!.maximum} and ${range.minimum}`);
+    // A gap is described by its evidence: failed builds, versions without a result (untested or unavailable), or both.
+    const gaps = { failed: [] as string[], untested: [] as string[], mixed: [] as string[] };
+    ranges.slice(1).forEach((range, index) => {
+      const lower = ranges[index]!.maximum;
+      const inside = versions.filter(version => compareVersions(version, lower) > 0 && compareVersions(version, range.minimum) < 0);
+      const failed = inside.filter(version => release.outcomes.some(outcome => outcome.versions[version] === "FAIL")).length;
+      const kind = failed === 0 ? "untested" : failed === inside.length ? "failed" : "mixed";
+      gaps[kind].push(`${lower} and ${range.minimum}`);
+    });
     const notes = [
       `Declared minimum Hugo version: ${release.declaredHugoMinimum ?? "unknown"}.`,
       ...(extendedOnly.length ? [`Requires Hugo Extended for ${spans(extendedOnly)}.`] : []),
       ...(warnings ? ["Builds with warnings."] : []),
-      ...(gaps.length ? [`No passing build between ${gaps.join(", and between ")}.`] : []),
+      ...(gaps.failed.length ? [`Fails between ${gaps.failed.join(", and between ")}.`] : []),
+      ...(gaps.mixed.length ? [`Fails or has no test result between ${gaps.mixed.join(", and between ")}.`] : []),
+      ...(gaps.untested.length ? [`No test result between ${gaps.untested.join(", and between ")}.`] : []),
     ];
     // Each distinct note becomes one numbered footnote, in order of first use.
     const markers = notes.map(note => {
