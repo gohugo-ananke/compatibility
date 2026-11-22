@@ -57,3 +57,15 @@ test("the table shows one row per release across editions", () => {
   assert.match(rows[0]!, /\| v0\.169\.0 \| v0\.170\.1 \(latest tested\) \| \[1\] \[2\] \|$/);
   assert.match(footnotes!, /<p><sup>1<\/sup> Declared minimum Hugo version: 0\.160\.0\.<\/p>\n<p><sup>2<\/sup> Requires Hugo Extended for v0\.169\.0\.<\/p>/);
 });
+
+test("table notes say whether a gap failed or has no test result", () => {
+  const facts = recordSnapshot(undefined, snapshot, [result], "test", "first", "v24");
+  const outcome = facts.snapshot.releases[0]!.outcomes[0]!;
+  outcome.versions = { "v0.160.0": "PASS", "v0.161.0": "NOT_TESTED", "v0.162.0": "PASS", "v0.163.0": "FAIL", "v0.164.0": "PASS",
+    "v0.165.0": "FAIL", "v0.166.0": "NOT_TESTED", "v0.167.0": "PASS" };
+  const footnotes = renderTable(facts).split("\n\n")[1]!;
+  assert.match(footnotes, /Fails between v0\.162\.0 and v0\.164\.0\./);
+  assert.match(footnotes, /Fails or has no test result between v0\.164\.0 and v0\.167\.0\./);
+  assert.match(footnotes, /No test result between v0\.160\.0 and v0\.162\.0\./);
+  assert.doesNotMatch(footnotes, /No passing build/);
+});
