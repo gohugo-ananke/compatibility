@@ -3,7 +3,7 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
-import { compareVersions, intervals, statusSchema, type Result } from "./model.ts";
+import { compareVersions, intervals, passing, statusSchema, type Result } from "./model.ts";
 
 export const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 export const factsPath = path.join(projectRoot, "data/compatibility.json");
@@ -115,15 +115,43 @@ export function recordSnapshot(prior: Facts | undefined, snapshot: Snapshot, res
 export async function saveFacts(facts: Facts, file = factsPath) {
   await atomicWrite(file, `${JSON.stringify(validateFacts(facts), null, 2)}\n`);
 }
+const spans = (ranges: { minimum: string; maximum: string }[]) =>
+  ranges.map(range => range.minimum === range.maximum ? range.minimum : `${range.minimum} to ${range.maximum}`).join(", ");
+
+// One row per release: a Hugo version counts when any edition passes it.
 export function renderTable(facts: Facts): string {
   const lines = ["| Ananke | Minimum tested Hugo | Maximum tested Hugo | Notes |", "| --- | --- | --- | --- |"];
-  for (const release of facts.snapshot.releases) for (const outcome of release.outcomes) {
-    const warnings = outcome.counts["PASS_WITH_WARNINGS"] ?? 0;
-    const notes = `${outcome.edition}; declared minimum ${release.declaredHugoMinimum ?? "unknown"}${warnings ? "; builds with warnings" : ""}${outcome.compatibilityIntervals.length > 1 ? "; separate intervals, with gaps" : ""}`;
-    const ranges = outcome.compatibilityIntervals.length ? outcome.compatibilityIntervals : [null];
-    for (const range of ranges) lines.push(`| [${release.tag}](https://github.com/gohugo-ananke/ananke/releases/tag/${release.tag}) | ${range?.minimum ?? "None established"} | ${range ? `${range.maximum}${range.latestTested ? " (latest tested)" : " (tested interval)"}` : "Unknown"} | ${notes} |`);
+  const footnotes: string[] = [];
+  for (const release of facts.snapshot.releases) {
+    const versions = [...new Set(release.outcomes.flatMap(outcome => Object.keys(outcome.versions)))].sort(compareVersions);
+    const edition = (name: string) => release.outcomes.find(outcome => outcome.edition === name)?.versions ?? {};
+    const standard = edition("standard");
+    const extended = edition("extended");
+    const merged = new Map(versions.map(version => [version, release.outcomes.some(outcome => passing(outcome.versions[version] ?? "NOT_TESTED")) ? "PASS" : "NOT_TESTED"]));
+    const ranges = intervals(versions, merged);
+    // Gaps are reported separately, so only passing versions split the Extended note.
+    const covered = versions.filter(version => merged.get(version) === "PASS");
+    const extendedOnly = intervals(covered, new Map(covered.map(version => [version, passing(extended[version] ?? "NOT_TESTED") && !passing(standard[version] ?? "NOT_TESTED") ? "PASS" : "NOT_TESTED"])));
+    const warnings = release.outcomes.some(outcome => Object.values(outcome.versions).includes("PASS_WITH_WARNINGS"));
+    const gaps = ranges.slice(1).map((range, index) => `${ranges[index]!.maximum} and ${range.minimum}`);
+    const notes = [
+      `Declared minimum Hugo version: ${release.declaredHugoMinimum ?? "unknown"}.`,
+      ...(extendedOnly.length ? [`Requires Hugo Extended for ${spans(extendedOnly)}.`] : []),
+      ...(warnings ? ["Builds with warnings."] : []),
+      ...(gaps.length ? [`No passing build between ${gaps.join(", and between ")}.`] : []),
+    ];
+    // Each distinct note becomes one numbered footnote, in order of first use.
+    const markers = notes.map(note => {
+      if (!footnotes.includes(note)) footnotes.push(note);
+      return footnotes.indexOf(note) + 1;
+    });
+    const first = ranges[0];
+    const last = ranges.at(-1);
+    lines.push(`| [${release.tag}](https://github.com/gohugo-ananke/ananke/releases/tag/${release.tag}) | ${first?.minimum ?? "None established"} | ${last ? `${last.maximum}${last.latestTested ? " (latest tested)" : ""}` : "Unknown"} | ${markers.sort((a, b) => a - b).map(marker => `[${marker}]`).join(" ")} |`);
   }
-  return lines.join("\n");
+  // The documentation styles .docs-footnotes; the HTML is limited to this block.
+  const notes = footnotes.map((note, index) => `<p><sup>${index + 1}</sup> ${note}</p>`).join("\n");
+  return `${lines.join("\n")}\n\n<!-- markdownlint-disable MD033 -->\n<div class="docs-footnotes">\n${notes}\n</div>\n<!-- markdownlint-enable MD033 -->`;
 }
 export async function generatePage(facts: Facts, output: string) {
   const template = await readFile(path.join(projectRoot, "documentation/compatibility.md"), "utf8");
